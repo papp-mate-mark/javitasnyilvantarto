@@ -1,0 +1,1 @@
+ALTER TYPE user_authority ADD VALUE 'MANAGE_MIGRATIONS';
