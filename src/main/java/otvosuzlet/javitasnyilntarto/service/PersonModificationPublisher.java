@@ -15,10 +15,6 @@ public class PersonModificationPublisher {
         this.eventPublisher = eventPublisher;
     }
 
-    public void publishAfterCommit(Integer personId, String reason) {
-        publishAfterCommit(personId, reason, null);
-    }
-
     public void publishAfterCommit(Integer personId, String reason, String actor) {
         if (personId == null) {
             return;

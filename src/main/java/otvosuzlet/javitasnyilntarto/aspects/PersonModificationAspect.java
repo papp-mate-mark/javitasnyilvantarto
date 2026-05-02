@@ -49,8 +49,6 @@ public class PersonModificationAspect {
         return name;
     }
 
-    // --- Person ---
-
     @AfterReturning(pointcut = "execution(* otvosuzlet.javitasnyilntarto.repository.PersonRepository.save(..))", returning = "saved")
     public void afterPersonSave(Person saved) {
         publisher.publishAfterCommit(saved == null ? null : saved.getId(), "person.save", currentActor());
