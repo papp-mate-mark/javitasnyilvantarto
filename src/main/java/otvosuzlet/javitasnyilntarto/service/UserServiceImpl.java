@@ -28,6 +28,7 @@ import otvosuzlet.javitasnyilntarto.exceptions.ValidationException;
 import otvosuzlet.javitasnyilntarto.model.RefreshToken;
 import otvosuzlet.javitasnyilntarto.model.User;
 import otvosuzlet.javitasnyilntarto.model.UserDto;
+import otvosuzlet.javitasnyilntarto.model.MyUserDetails;
 import otvosuzlet.javitasnyilntarto.repository.RefreshTokenRepository;
 import otvosuzlet.javitasnyilntarto.repository.UserRepository;
 import otvosuzlet.javitasnyilntarto.specification.UserSearchSpec;
@@ -237,7 +238,7 @@ public class UserServiceImpl implements UserService{
             }
 
             User persistedUser = findByUsername(user.getUsername());
-            TokensResponseDTO tokens = jwtService.generateTokens(user.getUsername());
+            TokensResponseDTO tokens = jwtService.generateTokens(new MyUserDetails(persistedUser));
             saveRefreshToken(tokens.getRefreshToken(), persistedUser, ipAddress, userAgent);
 
             LoginResponse loginResponse = new LoginResponse();
@@ -273,7 +274,7 @@ public class UserServiceImpl implements UserService{
         String username = jwtService.extractUserName(refreshToken);
 
         User persistedUser = findByUsername(username);
-        TokensResponseDTO tokens = jwtService.generateTokens(username);
+        TokensResponseDTO tokens = jwtService.generateTokens(new MyUserDetails(persistedUser));
         saveRefreshToken(tokens.getRefreshToken(), persistedUser, ipAddress, userAgent);
 
         LoginResponse loginResponse = new LoginResponse();

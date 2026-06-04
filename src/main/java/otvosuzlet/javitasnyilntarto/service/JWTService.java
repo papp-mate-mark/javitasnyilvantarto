@@ -19,6 +19,12 @@ import java.util.Base64;
 import java.util.Date;
 import java.util.HashMap;
 import java.util.Map;
+import java.util.stream.Collectors;
+import java.util.Collection;
+import java.util.List;
+import java.util.Collections;
+import org.springframework.security.core.GrantedAuthority;
+import org.springframework.security.core.authority.SimpleGrantedAuthority;
 import java.util.function.Function;
 
 @Service
@@ -57,30 +63,51 @@ public class JWTService {
     }
 
     /**
-     * Generates both access and refresh tokens for a given username.
+     * Generates both access and refresh tokens for a given user.
      *
-     * @param username The subject for whom to generate the tokens.
+     * @param user The user for whom to generate the tokens.
      * @return A DTO containing the newly generated access and refresh tokens.
      */
-    public TokensResponseDTO generateTokens(String username) {
-        String accessToken = generateToken(username, accessTokenTtlMs, "access", getKey());
-        String refreshToken = generateToken(username, refreshTokenTtlMs, "refresh", getKey());
+    public TokensResponseDTO generateTokens(UserDetails user) {
+        String accessToken = generateAccessToken(user);
+        String refreshToken = generateRefreshToken(user.getUsername());
 
         return new TokensResponseDTO(accessToken, refreshToken);
     }
 
-    private String generateToken(String username, long expiryMillis, String type, SecretKey key) {
+    private String generateAccessToken(UserDetails user) {
         long cMilis = System.currentTimeMillis();
         Date now = new Date(cMilis);
-        Date expiry = new Date(cMilis + expiryMillis);
+        Date expiry = new Date(cMilis + accessTokenTtlMs);
         Map<String, Object> claims = new HashMap<>();
-        claims.put("token_type", type);
+        claims.put("token_type", "access");
+        
+        List<String> roles = user.getAuthorities().stream()
+                .map(GrantedAuthority::getAuthority)
+                .toList();
+        claims.put("authorities", roles);
+        
+        return Jwts.builder()
+                .claims(claims)
+                .subject(user.getUsername())
+                .issuedAt(now)
+                .expiration(expiry)
+                .signWith(getKey())
+                .compact();
+    }
+    
+    private String generateRefreshToken(String username) {
+        long cMilis = System.currentTimeMillis();
+        Date now = new Date(cMilis);
+        Date expiry = new Date(cMilis + refreshTokenTtlMs);
+        Map<String, Object> claims = new HashMap<>();
+        claims.put("token_type", "refresh");
         return Jwts.builder()
                 .claims(claims)
                 .subject(username)
                 .issuedAt(now)
                 .expiration(expiry)
-                .signWith(key)
+                .signWith(getKey())
                 .compact();
     }
 
@@ -143,6 +170,40 @@ public class JWTService {
      */
     public Date extractExpiration(String token) {
         return extractClaim(token, Claims::getExpiration);
+    }
+
+    /**
+     * Extracts the authorities from a given token.
+     *
+     * @param token The JWT string.
+     * @return The authorities embedded in the token's claims.
+     */
+    @SuppressWarnings("unchecked")
+    public Collection<GrantedAuthority> extractAuthorities(String token) {
+        return extractClaim(token, claims -> {
+            List<String> roles = claims.get("authorities", List.class);
+            if (roles == null) {
+                return Collections.emptyList();
+            }
+            return roles.stream()
+                .map(SimpleGrantedAuthority::new)
+                .collect(Collectors.toList());
+        });
+    }
+
+    /**
+     * Validates an access token without requiring a UserDetails object.
+     * Ensures the token is not expired, and it has the correct "access" type.
+     *
+     * @param token The JWT string to validate.
+     * @return True if the token is valid, otherwise false.
+     */
+    public boolean validateToken(String token) {
+        try {
+            return !isTokenExpired(token) && "access".equals(extractTokenType(token));
+        } catch (Exception e) {
+            return false;
+        }
     }
 
     private <T> T extractClaim(String token, Function<Claims, T> claimResolver) {

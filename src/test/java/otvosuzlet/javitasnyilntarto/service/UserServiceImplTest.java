@@ -26,6 +26,8 @@ import org.springframework.security.authentication.AuthenticationManager;
 import org.springframework.security.authentication.BadCredentialsException;
 import org.springframework.security.authentication.UsernamePasswordAuthenticationToken;
 
+import org.springframework.security.core.userdetails.UserDetails;
+
 import otvosuzlet.javitasnyilntarto.dto.LoginRequestDto;
 import otvosuzlet.javitasnyilntarto.dto.LoginResponse;
 import otvosuzlet.javitasnyilntarto.dto.PageResponse;
@@ -102,7 +104,7 @@ class UserServiceImplTest {
         when(userRepository.findByUsername("john")).thenReturn(Optional.of(user));
 
         TokensResponseDTO tokens = new TokensResponseDTO("access", "refresh");
-        when(jwtService.generateTokens("john")).thenReturn(tokens);
+        when(jwtService.generateTokens(any(UserDetails.class))).thenReturn(tokens);
         when(jwtService.extractExpiration("refresh")).thenReturn(new java.util.Date(System.currentTimeMillis() + 3600000));
         when(userRepository.save(any())).thenReturn(user);
 
