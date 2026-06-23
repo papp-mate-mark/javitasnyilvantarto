@@ -90,6 +90,7 @@ public class UserServiceImpl implements UserService{
         User user = findUserById(id);
         try{
             userRepository.save(assingValuesToUser(request, user));
+            jwtService.invalidateTokensForUserId(id);
         }catch(UseranemeNotUniqueException e){
             throw new ValidationException("username", "validation.username.already.exists");
         }
@@ -157,6 +158,7 @@ public class UserServiceImpl implements UserService{
     public void deleteUser(Integer id) {
         User userToDelete = userRepository.findById(id)
                 .orElseThrow(() -> new UserNotFoundException("Nem található felhasználó a törléshez: " + id));
+        jwtService.invalidateTokensForUserId(id);
         userRepository.delete(userToDelete);
     }
 
@@ -171,6 +173,7 @@ public class UserServiceImpl implements UserService{
         user.setPassword(bCryptPasswordEncoder.encode(newPassword));
         userRepository.save(user);
 
+        jwtService.invalidateTokensForUserId(id);
 
         return new ResetPasswordResponse(newPassword);
     }
@@ -185,6 +188,8 @@ public class UserServiceImpl implements UserService{
 
         user.setPassword(bCryptPasswordEncoder.encode(request.getNewPassword()));
         userRepository.save(user);
+
+        jwtService.invalidateTokensForUserId(user.getId());
     }
 
     private String generateStrongPassword(int length) {
@@ -325,6 +330,7 @@ public class UserServiceImpl implements UserService{
     @Transactional
     public RefreshToken invalidateRefreshTokenString(String token){
         RefreshToken refreshToken = findTokenByRefreshToken(token);
+        jwtService.invalidateTokensForUserId(refreshToken.getUser().getId());
         return invalidateRefreshToken(refreshToken);
     }
 
@@ -334,6 +340,7 @@ public class UserServiceImpl implements UserService{
     public void invalidateOtherRefreshTokensByUsername(String token, String authenticatedUsername) {
         User user = findByUsername(authenticatedUsername);
         invalidateOtherRefreshTokensByUser(token, user);
+        jwtService.invalidateTokensForUserId(user.getId());
     }
 
     @Transactional

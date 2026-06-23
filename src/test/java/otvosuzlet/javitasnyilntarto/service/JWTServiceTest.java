@@ -6,14 +6,14 @@ import static org.junit.jupiter.api.Assertions.assertNotNull;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 
 import java.util.Date;
-import java.util.Collections;
 
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
-import org.springframework.security.core.userdetails.User;
 import org.springframework.security.core.userdetails.UserDetails;
 
 import otvosuzlet.javitasnyilntarto.dto.TokensResponseDTO;
+import otvosuzlet.javitasnyilntarto.model.MyUserDetails;
+import otvosuzlet.javitasnyilntarto.model.User;
 
 class JWTServiceTest {
 
@@ -23,7 +23,10 @@ class JWTServiceTest {
     @BeforeEach
     void setUp() {
         jwtService = new JWTService("dGVzdC1zZWNyZXQta2V5LWZvci10ZXN0aW5nLXB1cnBvc2VzLW9ubHktdGVzdC1zZWNyZXQta2V5LWZvci10ZXN0aW5nLXB1cnBvc2VzLW9ubHk=", 60000, 3600000);
-        testUser = new User("testuser", "", Collections.emptyList());
+        User user = new User();
+        user.setId(1);
+        user.setUsername("testuser");
+        testUser = new MyUserDetails(user);
     }
 
     @Test

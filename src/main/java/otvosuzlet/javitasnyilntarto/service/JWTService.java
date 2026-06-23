@@ -5,6 +5,7 @@ import io.jsonwebtoken.Jwts;
 import io.jsonwebtoken.io.Decoders;
 import io.jsonwebtoken.security.Keys;
 import otvosuzlet.javitasnyilntarto.dto.TokensResponseDTO;
+import otvosuzlet.javitasnyilntarto.model.MyUserDetails;
 
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -15,10 +16,12 @@ import org.springframework.stereotype.Service;
 import javax.crypto.KeyGenerator;
 import javax.crypto.SecretKey;
 import java.security.NoSuchAlgorithmException;
+import java.time.Instant;
 import java.util.Base64;
 import java.util.Date;
 import java.util.HashMap;
 import java.util.Map;
+import java.util.concurrent.ConcurrentHashMap;
 import java.util.stream.Collectors;
 import java.util.Collection;
 import java.util.List;
@@ -30,6 +33,8 @@ import java.util.function.Function;
 @Service
 public class JWTService {
     private static final Logger logger = LoggerFactory.getLogger("fileLogger");
+
+    private final Map<String, Instant> userInvalidationTimes = new ConcurrentHashMap<>();
 
     private final String secretKey;
 
@@ -81,6 +86,7 @@ public class JWTService {
         Date expiry = new Date(cMilis + accessTokenTtlMs);
         Map<String, Object> claims = new HashMap<>();
         claims.put("token_type", "access");
+        claims.put("userId", ((MyUserDetails) user).getId());
         
         List<String> roles = user.getAuthorities().stream()
                 .map(GrantedAuthority::getAuthority)
@@ -147,11 +153,23 @@ public class JWTService {
      */
     public boolean validateAccessToken(String token, UserDetails userDetails) {
         final String userName = extractUserName(token);
+
         return (userName.equals(userDetails.getUsername()) 
                 && !isTokenExpired(token) 
                 && "access".equals(extractTokenType(token))); 
     }
     
+    /**
+     * Invalidates all existing tokens for the given user by recording the current time
+     * as the invalidation point. Any tokens issued before this time will be rejected
+     * on subsequent validation attempts.
+     *
+     * @param userId The ID of the user whose tokens should be invalidated.
+     */
+    public void invalidateTokensForUserId(Integer userId) {
+        userInvalidationTimes.put(userId.toString(), Instant.now());
+    }
+
     /**
      * Checks if a given token has expired.
      *
@@ -200,7 +218,21 @@ public class JWTService {
      */
     public boolean validateToken(String token) {
         try {
-            return !isTokenExpired(token) && "access".equals(extractTokenType(token));
+            if (!(!isTokenExpired(token) && "access".equals(extractTokenType(token)))) {
+                return false;
+            }
+
+            Integer userId = extractClaim(token, claims -> claims.get("userId", Integer.class));
+            if (userId != null && userInvalidationTimes.containsKey(userId.toString())) {
+                Instant invalidationTime = userInvalidationTimes.get(userId.toString());
+                Instant tokenIssuedAt = extractClaim(token, Claims::getIssuedAt).toInstant();
+                if (tokenIssuedAt.plusSeconds(1).isBefore(invalidationTime)) { // Adding a 1-second buffer to account for potential clock skew
+                    logger.info("Rejecting invalidated token. Token issued at: {}, Invalidation time: {}", tokenIssuedAt, invalidationTime);
+                    return false;
+                }
+            }
+
+            return true;
         } catch (Exception e) {
             return false;
         }
