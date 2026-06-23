@@ -242,7 +242,6 @@ public class UserServiceImpl implements UserService{
             saveRefreshToken(tokens.getRefreshToken(), persistedUser, ipAddress, userAgent);
 
             LoginResponse loginResponse = new LoginResponse();
-            loginResponse.setAuthorities(persistedUser.getAuthorities());
             loginResponse.setTokens(tokens);
             loginResponse.setName(persistedUser.getName());
             return loginResponse;
@@ -278,7 +277,6 @@ public class UserServiceImpl implements UserService{
         saveRefreshToken(tokens.getRefreshToken(), persistedUser, ipAddress, userAgent);
 
         LoginResponse loginResponse = new LoginResponse();
-        loginResponse.setAuthorities(persistedUser.getAuthorities());
         loginResponse.setTokens(tokens);
         loginResponse.setName(persistedUser.getName());
         return loginResponse;
