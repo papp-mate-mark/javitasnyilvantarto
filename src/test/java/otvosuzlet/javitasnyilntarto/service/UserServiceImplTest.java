@@ -106,7 +106,6 @@ class UserServiceImplTest {
         TokensResponseDTO tokens = new TokensResponseDTO("access", "refresh");
         when(jwtService.generateTokens(any(UserDetails.class))).thenReturn(tokens);
         when(jwtService.extractExpiration("refresh")).thenReturn(new java.util.Date(System.currentTimeMillis() + 3600000));
-        when(userRepository.save(any())).thenReturn(user);
 
         LoginResponse response = userService.verify(request, "192.168.1.1", "Mozilla");
 

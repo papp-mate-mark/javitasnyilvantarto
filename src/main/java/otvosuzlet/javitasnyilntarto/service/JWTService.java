@@ -43,7 +43,7 @@ public class JWTService {
     private final long refreshTokenTtlMs;
 
     public JWTService(
-            @Value("${jwt.secret-base64:}") String secretKeyBase64,
+            @Value("${jwt.secret-base64}") String secretKeyBase64,
             @Value("${jwt.access-token-ttl-ms}") long accessTokenTtlMs,
             @Value("${jwt.refresh-token-ttl-ms}") long refreshTokenTtlMs
     ) {

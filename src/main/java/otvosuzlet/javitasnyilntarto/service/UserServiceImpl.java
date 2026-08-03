@@ -40,7 +40,6 @@ import java.security.NoSuchAlgorithmException;
 import java.security.SecureRandom;
 import java.util.Arrays;
 import java.util.Base64;
-import java.util.HashSet;
 import java.util.Set;
 
 @Service
@@ -309,12 +308,9 @@ public class UserServiceImpl implements UserService{
         Instant expiresAt = jwtService.extractExpiration(token).toInstant();
         refreshToken.setExpiresAt(expiresAt);
 
-        if (user.getRefreshTokens() == null) {
-            user.setRefreshTokens(new HashSet<>());
-        }
-        user.getRefreshTokens().add(refreshToken);
+        refreshTokenRepository.save(refreshToken);
 
-        userRepository.save(user);
+        user.getRefreshTokens().add(refreshToken);
         return refreshToken;
     }
     
